@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define HASH_TABLE_IMPLEMENTATION
-#include "hash_table.h"
+#define HT_HASH_TABLE_IMPLEMENTATION
+#include "ht_hash_table.h"
 
 struct foo_t
 {
