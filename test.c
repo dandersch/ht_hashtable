@@ -1,6 +1,5 @@
 #include <stdio.h>
-#include <cstdlib>
-
+#include <stdlib.h>
 #include <assert.h>
 
 #define HASH_TABLE_IMPLEMENTATION
@@ -13,9 +12,17 @@ struct foo_t
         bool  d;
 };
 
+struct my_thing_t
+{
+	int32_t     foo;
+	float       bar;
+	bool        handled;
+	const char* desc;
+};
+
 int main()
 {
-	hash_table_t* table = hash_table_init(&malloc, 4096, sizeof(foo_t));
+	ht_hash_table_t* table = ht_init(&malloc, 4096, sizeof(foo_t));
     assert(table);
 
     {
@@ -24,42 +31,44 @@ int main()
     }
     foo_t* f = (foo_t*) ht_get_entry(table, "my_entry");
     assert(f);
-    printf("%f\n", f->bar);
-    printf("%b\n", f->d);
+    assert(f->bar == 3.1f);
+    assert(f->d);
+
+	ht_hash_table_t* ht = ht_init(&malloc, 4096, sizeof(my_thing_t));
+    assert(ht);
 
 	my_thing_t first = {69, 4.20, true, "hello"};
 	my_thing_t second = {13, 3.7, false, "world"};
+	ht_add_entry(ht, "first",  &first);
+	ht_add_entry(ht, "second", &second);
 
-	hash_table_add_entry("first", first);
-	hash_table_add_entry("second", second);
-
-    assert(hash_table_get_entry("first"));
-    assert(hash_table_get_entry("second"));
-    assert(!hash_table_get_entry("third"));
+    assert(ht_get_entry(ht,  "first"));
+    assert(ht_get_entry(ht,  "second"));
+    assert(!ht_get_entry(ht, "third"));
 
   	my_thing_t provoke   = {13, 3.7, false, "COLLISION"};
 	my_thing_t collision = {13, 3.7, false, "RESOLVED"};
-	hash_table_add_entry("aBcD", provoke);
-	hash_table_add_entry("DcaB", collision);
+	ht_add_entry(ht, "aBcD", &provoke);
+	ht_add_entry(ht, "DcaB", &collision);
 
-    assert(hash_table_get_entry("aBcD"));
-    assert(hash_table_get_entry("DcaB"));
+    assert(ht_get_entry(ht, "aBcD"));
+    assert(ht_get_entry(ht, "DcaB"));
 
 	my_thing_t test   = {13, 3.7, false, "TEST"};
 	my_thing_t edge   = {13, 3.7, false, "EDGE"};
-	hash_table_add_entry("dddddddddddddddddddddddddddddddddddddddd2-" /* 4095 */, test);
-	hash_table_add_entry("dddddddddddddddddddddddddddddddddddddddd-2" /* 4095 */, edge);
+	ht_add_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2-" /* 4095 */, &test);
+	ht_add_entry(ht, "dddddddddddddddddddddddddddddddddddddddd-2" /* 4095 */, &edge);
 
-    assert(hash_table_get_entry("dddddddddddddddddddddddddddddddddddddddd2-"));
-    assert(hash_table_get_entry("dddddddddddddddddddddddddddddddddddddddd-2"));
+    assert(ht_get_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2-"));
+    assert(ht_get_entry(ht, "dddddddddddddddddddddddddddddddddddddddd-2"));
 
 	my_thing_t overflow = {13, 3.7, false, "OVERFLOW"};
-	hash_table_add_entry("dddddddddddddddddddddddddddddddddddddddd2." /* 4096 */, overflow);
-    assert(hash_table_get_entry("dddddddddddddddddddddddddddddddddddddddd2."));
+	ht_add_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2." /* 4096 */, &overflow);
+    assert(ht_get_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2."));
 
 	my_thing_t overflow2 = {13, 3.7, false, "OVERFLOW2"};
-	hash_table_add_entry("dddddddddddddddddddddddddddddddddddddddd2.aksj", overflow2);
-    assert(hash_table_get_entry("dddddddddddddddddddddddddddddddddddddddd2.aksj"));
+	ht_add_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2.aksj", &overflow2);
+    assert(ht_get_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2.aksj"));
 
 	return 0;
 }
