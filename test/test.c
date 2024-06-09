@@ -3,9 +3,10 @@
 #include <assert.h>
 
 #define HT_HASH_TABLE_IMPLEMENTATION
-#include "ht_hash_table.h"
+#include "../ht_hash_table.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct foo_t
 {
@@ -48,7 +49,7 @@ int main()
     assert(ht_get_entry(ht,  "second"));
     assert(!ht_get_entry(ht, "third"));
 
-      my_thing_t provoke   = {13, 3.7, false, "COLLISION"};
+    my_thing_t provoke   = {13, 3.7, false, "COLLISION"};
     my_thing_t collision = {13, 3.7, false, "RESOLVED"};
     ht_add_entry(ht, "aBcD", &provoke);
     ht_add_entry(ht, "DcaB", &collision);
@@ -71,6 +72,18 @@ int main()
     my_thing_t overflow2 = {13, 3.7, false, "OVERFLOW2"};
     ht_add_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2.aksj", &overflow2);
     assert(ht_get_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2.aksj"));
+
+    int freed = ht_free_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2.aksj", &free);
+    assert(freed);
+    assert(!ht_get_entry(ht, "dddddddddddddddddddddddddddddddddddddddd2.aksj"));
+
+    freed = ht_free_entry(ht, "random", &free);
+    assert(!freed);
+
+    ht_destroy(&table, &free);
+    assert(!table);
+    ht_destroy(&ht, &free);
+    assert(!ht);
 
     return 0;
 }
