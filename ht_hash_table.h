@@ -16,8 +16,8 @@ typedef struct ht_hash_table_t ht_hash_table_t;
 ht_hash_table_t* ht_init(void* (*allocator)(size_t),  const size_t table_size, const size_t entry_size);
 int              ht_add_entry(ht_hash_table_t* table, const char* key, void* entry);
 void*            ht_get_entry(ht_hash_table_t* table, const char* key);
-// TODO int      ht_free_entry(ht_hash_table_t* table, const char* key);
-// TODO int      ht_destroy(ht_hash_table_t* table);
+int              ht_free_entry(ht_hash_table_t* table, const char* key, void (*deallocator)(void*));
+void             ht_destroy(ht_hash_table_t** table, void (*deallocator)(void*));
 
 /* implementation */
 #ifdef HT_HASH_TABLE_IMPLEMENTATION
@@ -96,35 +96,83 @@ int ht_add_entry(ht_hash_table_t* table, const char* key, void* entry)
     return 0;
 }
 
-void* ht_get_entry(ht_hash_table_t* table, const char* key)
+typedef struct index_or_error_t { size_t index; int error; } index_or_error_t;
+index_or_error_t get_index_for_key(ht_hash_table_t* table, const char* key)
 {
+    index_or_error_t index_or_error;
+    index_or_error.index = 0;
+    index_or_error.error = 0;
     size_t hash  = hash_function(table, key);
     int wrapped_around = 0;
 
-    for (uint32_t idx = hash; idx < table->table_size; idx++)
+    size_t idx;
+    for (idx = hash; idx < table->table_size; idx++)
     {
-        if (table->entries[idx].key == NULL) // we early out if there is no key
+        if (table->entries[idx].key == NULL) /* we early out if there is no key */
         {
-            return NULL;
+            index_or_error.error = 1;
+            break;
         }
 
-        if (strcmp(table->entries[idx].key, key) == 0) // key found
+        if (strcmp(table->entries[idx].key, key) == 0) /* key found */
         {
-            return table->entries[idx].entry;
+            index_or_error.index = idx;
+            break;
         }
 
-        if (idx == hash && wrapped_around) // array completely searched
+        if (idx == hash && wrapped_around) /* array completely searched */
         {
-            return NULL;
+            index_or_error.error = 1;
+            break;
         }
 
-        if (idx == (table->table_size - 1)) // handle wraparound
+        if (idx == (table->table_size - 1)) /* handle wraparound */
         {
             wrapped_around = 1;
             idx = 0;
         }
     }
 
-    return NULL;
+    return index_or_error;
+}
+
+void* ht_get_entry(ht_hash_table_t* table, const char* key)
+{
+    index_or_error_t index_or_error = get_index_for_key(table, key);
+
+    if (index_or_error.error)
+    {
+        return NULL;
+    }
+    else
+    {
+        return table->entries[index_or_error.index].entry;
+    }
+}
+
+int ht_free_entry(ht_hash_table_t* table, const char* key, void (*deallocator)(void*))
+{
+    index_or_error_t index_or_error = get_index_for_key(table, key);
+
+    if (index_or_error.error)
+    {
+        return 0;
+    }
+    else
+    {
+        deallocator(table->entries[index_or_error.index].entry);
+        table->entries[index_or_error.index].key = NULL;
+        return 1;
+    }
+}
+
+void  ht_destroy(ht_hash_table_t** table, void (*deallocator)(void*))
+{
+    HT_ASSERT(table);
+
+    deallocator((*table)->entries);
+    (*table)->entries = NULL;
+    deallocator(*table);
+    (*table) = NULL;
 }
 #endif
