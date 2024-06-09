@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define HT_HASH_TABLE_IMPLEMENTATION
-#include "../ht_hash_table.h"
+#define HT_HASHTABLE_IMPLEMENTATION
+#include "../ht_hashtable.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -25,7 +25,7 @@ typedef struct my_thing_t
 
 int main()
 {
-    ht_hash_table_t* table = ht_init(&malloc, 4096, sizeof(foo_t));
+    ht_hashtable_t* table = ht_init(&malloc, 4096, sizeof(foo_t));
     assert(table);
 
     {
@@ -37,7 +37,7 @@ int main()
     assert(f->bar == 3.1f);
     assert(f->d);
 
-    ht_hash_table_t* ht = ht_init(&malloc, 4096, sizeof(my_thing_t));
+    ht_hashtable_t* ht = ht_init(&malloc, 4096, sizeof(my_thing_t));
     assert(ht);
 
     my_thing_t first = {69, 4.20, true, "hello"};

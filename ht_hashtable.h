@@ -2,8 +2,8 @@
 
 #include <stddef.h>  /* for size_t */
 
-struct ht_hash_table_t;
-typedef struct ht_hash_table_t ht_hash_table_t;
+struct ht_hashtable_t;
+typedef struct ht_hashtable_t ht_hashtable_t;
 
 /*
  * NOTES:
@@ -13,11 +13,11 @@ typedef struct ht_hash_table_t ht_hash_table_t;
  * - naive hash function
  */
 
-ht_hash_table_t* ht_init(void* (*allocator)(size_t),  const size_t table_size, const size_t entry_size);
-int              ht_add_entry(ht_hash_table_t* table, const char* key, void* entry);
-void*            ht_get_entry(ht_hash_table_t* table, const char* key);
-int              ht_free_entry(ht_hash_table_t* table, const char* key, void (*deallocator)(void*));
-void             ht_destroy(ht_hash_table_t** table, void (*deallocator)(void*));
+ht_hashtable_t* ht_init(void* (*allocator)(size_t),  const size_t table_size, const size_t entry_size);
+int             ht_add_entry(ht_hashtable_t* table, const char* key, void* entry);
+void*           ht_get_entry(ht_hashtable_t* table, const char* key);
+int             ht_free_entry(ht_hashtable_t* table, const char* key, void (*deallocator)(void*));
+void            ht_destroy(ht_hashtable_t** table, void (*deallocator)(void*));
 
 #ifndef HT_ASSERT
   #include <assert.h>
@@ -34,7 +34,7 @@ void             ht_destroy(ht_hash_table_t** table, void (*deallocator)(void*))
 #endif
 
 /* implementation */
-#ifdef HT_HASH_TABLE_IMPLEMENTATION
+#ifdef HT_HASHTABLE_IMPLEMENTATION
 #include <string.h> /* for strlen(), strcmp(), memcpy() */
 
 typedef struct ht_entry_t
@@ -43,29 +43,29 @@ typedef struct ht_entry_t
     void*       entry;
 } ht_entry_t;
 
-typedef struct ht_hash_table_t
+struct ht_hashtable_t
 {
     ht_entry_t* entries;
     void*       (*allocator)(size_t);
     size_t      entry_size;
     size_t      table_size;
-} ht_hash_table_t;
+};
 
-ht_hash_table_t* ht_init(void* (*allocator)(size_t), const size_t table_size, const size_t entry_size)
+ht_hashtable_t* ht_init(void* (*allocator)(size_t), const size_t table_size, const size_t entry_size)
 {
     HT_ASSERT(!(table_size&(table_size-1))); /* size must be power of 2 */
 
-    size_t bytesize        = sizeof(ht_entry_t) * table_size;
-    ht_hash_table_t* table = (ht_hash_table_t*) allocator(sizeof(ht_hash_table_t));
-    table->allocator       = allocator;
-    table->table_size      = table_size;
-    table->entry_size      = entry_size;
-    table->entries         = (ht_entry_t*) allocator(bytesize);
+    size_t bytesize       = sizeof(ht_entry_t) * table_size;
+    ht_hashtable_t* table = (ht_hashtable_t*) allocator(sizeof(ht_hashtable_t));
+    table->allocator      = allocator;
+    table->table_size     = table_size;
+    table->entry_size     = entry_size;
+    table->entries        = (ht_entry_t*) allocator(bytesize);
     memset(table->entries, 0, bytesize);
     return table;
 }
 
-static size_t hash_function(ht_hash_table_t* table, const char* key)
+static size_t hash_function(ht_hashtable_t* table, const char* key)
 { 
     /* TODO better hash function */
     size_t ht_idx = 0;
@@ -81,7 +81,7 @@ static size_t hash_function(ht_hash_table_t* table, const char* key)
     return ht_idx;
 }
 
-int ht_add_entry(ht_hash_table_t* table, const char* key, void* entry)
+int ht_add_entry(ht_hashtable_t* table, const char* key, void* entry)
 {
     size_t hash = hash_function(table, key);
     int wrapped_around = 0;
@@ -118,7 +118,7 @@ int ht_add_entry(ht_hash_table_t* table, const char* key, void* entry)
 }
 
 typedef struct index_or_error_t { size_t index; int error; } index_or_error_t;
-index_or_error_t get_index_for_key(ht_hash_table_t* table, const char* key)
+index_or_error_t get_index_for_key(ht_hashtable_t* table, const char* key)
 {
     index_or_error_t index_or_error;
     index_or_error.index = 0;
@@ -157,7 +157,7 @@ index_or_error_t get_index_for_key(ht_hash_table_t* table, const char* key)
     return index_or_error;
 }
 
-void* ht_get_entry(ht_hash_table_t* table, const char* key)
+void* ht_get_entry(ht_hashtable_t* table, const char* key)
 {
     index_or_error_t index_or_error = get_index_for_key(table, key);
 
@@ -171,7 +171,7 @@ void* ht_get_entry(ht_hash_table_t* table, const char* key)
     }
 }
 
-int ht_free_entry(ht_hash_table_t* table, const char* key, void (*deallocator)(void*))
+int ht_free_entry(ht_hashtable_t* table, const char* key, void (*deallocator)(void*))
 {
     index_or_error_t index_or_error = get_index_for_key(table, key);
 
@@ -187,7 +187,7 @@ int ht_free_entry(ht_hash_table_t* table, const char* key, void (*deallocator)(v
     }
 }
 
-void  ht_destroy(ht_hash_table_t** table, void (*deallocator)(void*))
+void ht_destroy(ht_hashtable_t** table, void (*deallocator)(void*))
 {
     HT_ASSERT(table);
 
