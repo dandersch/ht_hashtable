@@ -19,6 +19,20 @@ void*            ht_get_entry(ht_hash_table_t* table, const char* key);
 int              ht_free_entry(ht_hash_table_t* table, const char* key, void (*deallocator)(void*));
 void             ht_destroy(ht_hash_table_t** table, void (*deallocator)(void*));
 
+#ifndef HT_ASSERT
+  #include <assert.h>
+  #define HT_ASSERT(expr) assert(expr)
+#endif
+
+#ifndef HT_LOG
+  #include <stdio.h>
+  #define HT_LOG(msg, ...) printf(msg, __VA_ARGS__)
+#endif
+
+#ifndef HT_LOG_COLLISIONS
+  #define HT_LOG_COLLISIONS 0
+#endif
+
 /* implementation */
 #ifdef HT_HASH_TABLE_IMPLEMENTATION
 #include <string.h> /* for strlen(), strcmp(), memcpy() */
@@ -39,7 +53,8 @@ typedef struct ht_hash_table_t
 
 ht_hash_table_t* ht_init(void* (*allocator)(size_t), const size_t table_size, const size_t entry_size)
 {
-    assert(!(table_size&(table_size-1))); // size must be power of 2
+    HT_ASSERT(!(table_size&(table_size-1))); /* size must be power of 2 */
+
     size_t bytesize        = sizeof(ht_entry_t) * table_size;
     ht_hash_table_t* table = (ht_hash_table_t*) allocator(sizeof(ht_hash_table_t));
     table->allocator       = allocator;
@@ -77,6 +92,8 @@ int ht_add_entry(ht_hash_table_t* table, const char* key, void* entry)
     {
         if (table->entries[idx].key == NULL) /* no collision */
         {
+            if (idx != hash && (HT_LOG_COLLISIONS)) { HT_LOG("Hash collision for key: %s\n", key); }
+
             table->entries[idx].entry = (void*) table->allocator(table->entry_size);
             memcpy(table->entries[idx].entry, entry, table->entry_size);
             table->entries[idx].key = key;
@@ -85,6 +102,10 @@ int ht_add_entry(ht_hash_table_t* table, const char* key, void* entry)
 
         /* array is completely filled */
         if (idx == hash && wrapped_around)
+        {
+            HT_LOG("Hash table with capacity %zu reached capacity\n", table->table_size);
+            return 0;
+        }
 
         if (idx == (table->table_size - 1)) /* handle wraparound */
         {
